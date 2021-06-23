@@ -1,0 +1,51 @@
+pipeline{
+
+agent any
+
+triggers{
+pollSCM('* * * * *')
+}
+
+options{
+    timestamps()
+}
+
+tools{
+maven "maven3.6.3"
+}
+
+stages{
+stage('CheckoutCode'){
+steps{
+git branch: 'development', credentialsId: '30179025-aa5e-4bff-b8a5-f87c38596f38', url: 'https://github.com/sumanthkumar1502/maven-web-application.git'
+}
+}
+
+stage('Build'){
+steps{
+sh "mvn clean package"
+}
+}
+
+stage('ExecuteSonarQubeReport'){
+steps{
+sh "mvn clean sonar:sonar"
+}
+}
+
+stage('UploadArtifactsIntoNexus'){
+steps{
+sh "mvn clean deploy"
+}
+}
+
+stage('DeployApplicationToTomcatServer'){
+steps{
+sshagent(['e9cbdfae-790d-41cf-ba5c-e1aaff5089a7']) {
+sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.108.193.211:/opt/apache-tomcat-9.0.46/webapps/"    
+}
+}
+}
+
+}
+}
